@@ -6,30 +6,39 @@
     <style>
         body { margin: 0; background: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
         
-        #game-area { position: relative; width: 540px; height: 500px; background: #222; border: 3px solid #d4af37; overflow: hidden; }
+        /* Menu Styling */
+        #menu { position: absolute; z-index: 100; background: rgba(0,0,0,0.9); width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .song-btn { background: #333; color: #d4af37; border: 2px solid #d4af37; padding: 15px 30px; margin: 10px; font-size: 20px; cursor: pointer; width: 250px; border-radius: 10px; }
+        .song-btn:hover { background: #d4af37; color: black; }
+
+        #game-area { position: relative; width: 320px; height: 500px; background: #222; border: 3px solid #d4af37; overflow: hidden; display: none; }
         
-        /* The Piano Keys at bottom */
+        /* 4 Lanes */
         #keyboard { display: flex; width: 100%; height: 80px; position: absolute; bottom: 0; background: #333; }
-        .key { flex: 1; border: 1px solid #555; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px; font-weight: bold; font-size: 14px; background: white; color: black; transition: 0.1s; }
-        .key.active { background: #d4af37; transform: translateY(-5px); }
+        .key { flex: 1; border: 1px solid #555; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px; font-weight: bold; background: white; color: black; transition: 0.1s; }
+        .key.active { background: #00ffff; transform: translateY(-3px); }
 
-        /* Falling Notes */
-        .note { position: absolute; width: 60px; height: 20px; background: #00ffff; border-radius: 5px; box-shadow: 0 0 10px #00ffff; }
+        .note { position: absolute; width: 80px; height: 25px; background: #d4af37; border-radius: 5px; box-shadow: 0 0 10px #d4af37; }
 
-        /* UI */
         #ui { position: absolute; top: 20px; text-align: center; width: 100%; pointer-events: none; }
         .stat { font-size: 24px; color: #d4af37; font-weight: bold; }
-        
-        #back-btn { position: absolute; top: 20px; left: 20px; color: #d4af37; text-decoration: none; border: 1px solid #d4af37; padding: 5px 10px; border-radius: 5px; }
+        #back-btn { position: absolute; top: 20px; left: 20px; color: #d4af37; text-decoration: none; border: 1px solid #d4af37; padding: 5px 10px; border-radius: 5px; z-index: 110; }
     </style>
 </head>
 <body>
 
 <a id="back-btn" href="https://puppyplaz2019.github.io/Arcade-HUB/">← HUB</a>
 
+<div id="menu">
+    <h1 style="color:#d4af37;">SELECT A SONG</h1>
+    <button class="song-btn" onclick="startGame(2, 0.015, 'Lullaby')">Peaceful Lullaby</button>
+    <button class="song-btn" onclick="startGame(3.5, 0.025, 'Minuet')">Quick Minuet</button>
+    <button class="song-btn" onclick="startGame(5, 0.04, 'Symphony')">Sanco's Symphony</button>
+</div>
+
 <div id="ui">
     <div class="stat">♪ <span id="note-display">0</span></div>
-    <div style="font-size: 14px; color: #888;">Use A-S-D-F-G-H-J-K-L</div>
+    <div id="song-name" style="color: #888;">Select a song to begin</div>
 </div>
 
 <div id="game-area">
@@ -38,49 +47,53 @@
         <div class="key" id="key-s">S</div>
         <div class="key" id="key-d">D</div>
         <div class="key" id="key-f">F</div>
-        <div class="key" id="key-g">G</div>
-        <div class="key" id="key-h">H</div>
-        <div class="key" id="key-j">J</div>
-        <div class="key" id="key-k">K</div>
-        <div class="key" id="key-l">L</div>
     </div>
 </div>
 
 <script>
     const gameArea = document.getElementById('game-area');
+    const menu = document.getElementById('menu');
     const noteDisplay = document.getElementById('note-display');
-    const keys = "asdfghjkl".split("");
-    const keyMap = { 'a':0, 's':1, 'd':2, 'f':3, 'g':4, 'h':5, 'j':6, 'k':7, 'l':8 };
+    const keyMap = { 'a':0, 's':1, 'd':2, 'f':3 };
     
     let harmony = parseInt(localStorage.getItem('notes_collected') || 0);
     noteDisplay.innerText = harmony;
 
-    // Game variables
     let fallingNotes = [];
-    let gameSpeed = 4;
-    let spawnRate = 0.03; // Chance per frame
+    let gameSpeed = 0;
+    let spawnRate = 0;
+    let isPlaying = false;
+
+    function startGame(speed, rate, name) {
+        gameSpeed = speed;
+        spawnRate = rate;
+        isPlaying = true;
+        menu.style.display = 'none';
+        gameArea.style.display = 'block';
+        document.getElementById('song-name').innerText = "Playing: " + name;
+        update();
+    }
 
     function createNote() {
-        const lane = Math.floor(Math.random() * 9);
+        const lane = Math.floor(Math.random() * 4);
         const note = document.createElement('div');
         note.className = 'note';
-        note.style.left = (lane * 60) + "px";
-        note.style.top = "-20px";
+        note.style.left = (lane * 80) + "px";
+        note.style.top = "-30px";
         gameArea.appendChild(note);
-        fallingNotes.push({ el: note, y: -20, lane: lane });
+        fallingNotes.push({ el: note, y: -30, lane: lane });
     }
 
     function update() {
-        // Spawn notes
+        if (!isPlaying) return;
+
         if (Math.random() < spawnRate) createNote();
 
-        // Move notes
         for (let i = fallingNotes.length - 1; i >= 0; i--) {
             let n = fallingNotes[i];
             n.y += gameSpeed;
             n.el.style.top = n.y + "px";
 
-            // Remove if missed
             if (n.y > 500) {
                 n.el.remove();
                 fallingNotes.splice(i, 1);
@@ -95,19 +108,16 @@
             const lane = keyMap[key];
             const keyEl = document.getElementById('key-' + key);
             
-            // Visual feedback
             keyEl.classList.add('active');
             setTimeout(() => keyEl.classList.remove('active'), 100);
 
-            // Check for hits
             for (let i = fallingNotes.length - 1; i >= 0; i--) {
                 let n = fallingNotes[i];
-                // If note is in the correct lane and near the bottom
-                if (n.lane === lane && n.y > 400 && n.y < 460) {
-                    harmony += 5; // Reward per hit
+                // Check if note is in the "Hit Zone" (near the bottom)
+                if (n.lane === lane && n.y > 380 && n.y < 450) {
+                    harmony += 2; 
                     noteDisplay.innerText = harmony;
                     localStorage.setItem('notes_collected', harmony);
-                    n.el.style.background = "yellow"; // Hit flash
                     n.el.remove();
                     fallingNotes.splice(i, 1);
                     break;
@@ -115,15 +125,6 @@
             }
         }
     });
-
-    // Gradually speed up
-    setInterval(() => {
-        gameSpeed += 0.1;
-        spawnRate += 0.002;
-    }, 5000);
-
-    update();
 </script>
-
 </body>
 </html>
